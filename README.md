@@ -2,6 +2,8 @@
 
 Two local LLM agents (Ollama) playing strategy games head-to-head — with a colorful gamified UI, live thinking stream, and inter-agent chat.
 
+![Game Sims](docs/screenshot.png)
+
 ## Games
 
 Reversi · Gomoku · Mancala · Hex · Breakthrough · Ultimate TTT
