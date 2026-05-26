@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { BotConfig } from '@/lib/llm'
 import { cn } from '@/lib/cn'
 
@@ -21,6 +22,11 @@ function trimToProse(text: string): string {
  * card the bubble belongs to (left = Player A, right = Player B).
  */
 export function ThinkingBubble({ bot, text, visible, side = 'left' }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [text])
   if (!visible) return null
   return (
     <div
@@ -48,8 +54,9 @@ export function ThinkingBubble({ bot, text, visible, side = 'left' }: Props) {
         </span>
       </div>
       <div
+        ref={scrollRef}
         className={cn(
-          'font-mono text-sm leading-relaxed whitespace-pre-wrap min-h-[2.5rem]',
+          'font-mono text-sm leading-relaxed whitespace-pre-wrap min-h-[2.5rem] max-h-[180px] overflow-y-auto pr-1',
           side === 'right' && 'text-right',
         )}
       >
