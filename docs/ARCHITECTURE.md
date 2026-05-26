@@ -5,20 +5,73 @@ and the load-bearing things I'd want to remember next time.
 
 ## Stack
 
-```
-Browser (Vite + React 19 + TS + Tailwind v4)
-   │
-   │ HTTP via Vite dev-server proxy
-   ▼
-Ollama (local) /v1/chat/completions
-   │
-   ▼
-Gemma 4 (e2b/e4b) · Qwen 3 (4b-instruct)
-```
-
 - **Vercel AI SDK v6** drives the agent loop (`streamText` + `tool()` + `hasToolCall`).
 - **`@ai-sdk/openai-compatible`** talks to Ollama's OpenAI-compatible endpoint.
-- **No backend** — the SPA hits Ollama directly through a dev-server proxy.
+- **No backend** — the SPA hits Ollama directly through the Vite dev-server proxy.
+
+### Component diagram
+
+```mermaid
+flowchart LR
+  subgraph Browser
+    direction TB
+    Pages["wizard pages<br/>PickGame → PickBots → Arena"]
+    App["App.tsx<br/>chat · log · status · humanTurn"]
+    Runner["runner.ts<br/>turn loop"]
+    LLM["lib/llm.ts<br/>streamForMove()<br/>tools: send_message, make_move"]
+    Engines["games/*<br/>6 GameEngine impls"]
+    Boards["board components<br/>interactive cells"]
+
+    Pages --> App
+    App --> Runner
+    Runner --> LLM
+    Runner -. uses .-> Engines
+    Pages --> Boards
+    Boards -. uses .-> Engines
+  end
+
+  LLM -- "AI SDK v6<br/>streamText + hasToolCall" --> Proxy
+
+  Proxy["Vite dev-server proxy<br/>/api/ollama → :11434<br/>logs prefill + gen tok/ms"]
+  Proxy --> Ollama
+
+  subgraph Ollama
+    direction TB
+    Slots["NUM_PARALLEL=2<br/>one slot per agent"]
+    Cache["KV cache q4_0<br/>+ Flash Attention"]
+    Models["gemma4:e2b · gemma4:e4b<br/>qwen3:4b-instruct"]
+    Slots --> Cache --> Models
+  end
+```
+
+### A turn, end-to-end
+
+```mermaid
+sequenceDiagram
+  participant U as UI / Human
+  participant A as App.tsx
+  participant R as runner.ts
+  participant L as streamForMove
+  participant O as Ollama
+
+  U->>A: Start Battle
+  A->>R: runGame({ getChat, onHumanTurn, onEvent })
+  loop until win / draw / forfeit
+    R->>R: pick current bot
+    alt bot is human
+      R->>U: onHumanTurn(legal moves)
+      U-->>R: click a cell → resolves move
+    else bot is AI
+      R->>L: streamForMove(system + dynamic prompt + tools)
+      L->>O: POST /v1/chat/completions (stream)
+      O-->>L: reasoning-delta + text-delta + tool-call
+      L-->>R: { move, raw, reasoning }
+    end
+    R->>R: validate vs engine.legalMoves
+    R->>A: emit chat / move / forfeit / end events
+    A->>U: update bubble · move log · board · chat
+  end
+```
 
 ## Layout
 
