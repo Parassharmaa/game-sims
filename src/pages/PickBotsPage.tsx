@@ -154,11 +154,11 @@ function ChampionCard({ slot, bot, onChange, availableModels }: ChampionProps) {
           ) : (
             <div className="text-3xl font-extrabold leading-none">{bot.name}</div>
           )}
-          <div className="text-xs mt-1 italic opacity-85 leading-snug">
-            {human
-              ? 'Human player. You will type your moves and chat in the arena.'
-              : bot.systemPrompt}
-          </div>
+          {human && (
+            <div className="text-xs mt-1 italic opacity-85 leading-snug">
+              Human player. You will click moves on the board and chat in the arena.
+            </div>
+          )}
         </div>
       </div>
       {!human && (
