@@ -79,7 +79,7 @@ function MoveLogItem({
         </div>
       )}
       {open && hasReasoning && (
-        <div className="text-xs mt-2 italic leading-snug max-h-[200px] overflow-y-auto whitespace-pre-wrap border-t border-black/20 pt-2">
+        <div className="text-xs mt-2 italic leading-snug max-h-[200px] overflow-y-auto whitespace-pre-wrap break-words border-t border-black/20 pt-2 pr-1">
           “{entry.reasoning}”
         </div>
       )}

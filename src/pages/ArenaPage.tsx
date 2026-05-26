@@ -216,7 +216,6 @@ export function ArenaPage(props: Props) {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-start">
-        <style>{`@media (min-width: 1024px) { [data-testid="side-panel"]:not([data-collapsed]) { width: 360px; } }`}</style>
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <BotCard
