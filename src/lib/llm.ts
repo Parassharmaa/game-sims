@@ -113,24 +113,26 @@ function chatPreamble(
   meName: string,
   oppName: string,
 ): string {
-  const newOppMsgs = history.filter(
+  if (history.length === 0) {
+    return `(no chat exchanged yet — you may start one with send_message)`
+  }
+  // Show the last 5 messages so the model can see the recent back-and-forth
+  // without drowning in old context. Always include the most recent ones.
+  const recent = history.slice(-5)
+  const newOppMsgs = recent.filter(
     (m) => m.player !== you && m.turn > myLastMoveTurn,
   )
-  const header =
-    newOppMsgs.length > 0
-      ? `⚠️ ${oppName} sent ${newOppMsgs.length} NEW message(s) since your last move — read carefully:\n`
-      : ''
-  if (history.length === 0) {
-    return header + '(no chat yet — feel free to start one with send_message)'
-  }
-  const recent = history.slice(-10)
   const lines = recent.map((m) => {
     const who = m.player === you ? `${meName} (you)` : oppName
     const isNew = m.player !== you && m.turn > myLastMoveTurn
-    const tag = isNew ? ' (NEW)' : ''
-    return `  [turn ${m.turn}] ${who}${tag}: ${m.text}`
+    const tag = isNew ? ' ← NEW since your last move' : ''
+    return `  [turn ${m.turn}] ${who}: "${m.text}"${tag}`
   })
-  return header + lines.join('\n')
+  const footer =
+    newOppMsgs.length > 0
+      ? `\n\n→ ${oppName} just sent ${newOppMsgs.length} new message(s). You may reference or rebut them via send_message.`
+      : ''
+  return lines.join('\n') + footer
 }
 
 const SYSTEM_TOOL_PREAMBLE = (you: PlayerSlot) =>
@@ -138,11 +140,13 @@ const SYSTEM_TOOL_PREAMBLE = (you: PlayerSlot) =>
     '',
     'TOOLS AVAILABLE THIS TURN:',
     `• send_message(text): post a public chat message your opponent will see before their next move.`,
-    `   Use sparingly. Bluff, taunt, negotiate, propose, mislead, befriend — whatever you think helps you win.`,
+    `   Use it to bluff, taunt, negotiate, propose, mislead, befriend, or directly respond to what they last said.`,
     `   Both players see all chat. You may call this 0 or more times.`,
     `• make_move(move): commit your move using this game's notation. You MUST call this exactly once to end your turn.`,
     '',
-    'The full chat log is always shown in the user prompt — there is no read_chat tool, just look there.',
+    'CHAT CONTEXT: the recent dialogue between you and your opponent is included at the END of the user prompt',
+    'as "RECENT CHAT". You can SEE your own past messages there — be consistent with what you previously said,',
+    'and respond meaningfully to your opponent if they spoke. Avoid generic taunts; reference specifics.',
     '',
     `You are Player ${you}. Think briefly out loud (1–3 sentences) — that text is shown live to a human audience —`,
     'then chat if you wish, then commit your move.',
@@ -171,13 +175,14 @@ export async function streamForMove<T>(
     /* not JSON — use as-is */
   }
   // Static / per-game text goes FIRST so the slot's KV cache reuses the prefix
-  // across consecutive turns from the same agent. Dynamic state goes LAST.
+  // across consecutive turns from the same agent. Chat log goes LAST so the
+  // model's attention lands on it just before deciding the move.
   const userWithChat =
     `For the make_move tool, the "move" argument must use this exact notation: ${notation}\n` +
     `\n═══ TURN STATE BELOW ═══\n\n` +
-    `CHAT LOG (${chatHistory.length} message${chatHistory.length === 1 ? '' : 's'} total):\n` +
-    `${chatPreamble(chatHistory, you, myLastMoveTurn, bot.name, opponent.name)}\n\n` +
-    userPrompt
+    userPrompt +
+    `\n\nRECENT CHAT (last 5, ${chatHistory.length} total):\n` +
+    `${chatPreamble(chatHistory, you, myLastMoveTurn, bot.name, opponent.name)}`
 
   let toolMove: string | null = null
 
