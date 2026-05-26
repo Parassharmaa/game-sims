@@ -184,6 +184,9 @@ export async function streamForMove<T>(
   const result = streamText({
     model: client.model(bot.model),
     temperature: bot.temperature ?? 0.7,
+    // Hard cap to prevent reasoning models from monologuing for 5+ minutes.
+    // Gives ~1500 tokens of reasoning + room for the tool call.
+    maxOutputTokens: 1800,
     system,
     prompt: userWithChat,
     abortSignal: args.signal,
