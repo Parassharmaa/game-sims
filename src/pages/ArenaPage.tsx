@@ -16,7 +16,7 @@ import type {
   PlayerSlot,
 } from '@/games/types'
 import type { BotConfig } from '@/lib/llm'
-import { Trophy, Handshake, Target, Play, Stop, Reset, ArrowLeft, GameController } from '@/components/icons'
+import { Trophy, Handshake, Target, Play, Stop, Reset, ArrowLeft, GameController, X, Warning } from '@/components/icons'
 
 interface Props {
   engine: GameEngine<unknown, unknown>
@@ -42,6 +42,7 @@ interface Props {
   onStop: () => void
   onReset: () => void
   onBack: () => void
+  onDismissError?: () => void
 }
 
 function renderBoard(
@@ -148,6 +149,7 @@ export function ArenaPage(props: Props) {
     onStop,
     onReset,
     onBack,
+    onDismissError,
   } = props
 
   const humanBot = humanTurn ? (humanTurn.player === 'A' ? botA : botB) : null
@@ -207,11 +209,23 @@ export function ArenaPage(props: Props) {
 
       {error && (
         <div
-          className="nb-card p-3 text-sm"
+          className="nb-card p-3 text-sm flex items-start gap-2"
           style={{ background: 'var(--color-arena-yellow)' }}
           data-testid="error"
         >
-          ⚠ {error}
+          <Warning size={16} weight="bold" className="shrink-0 mt-0.5" />
+          <span className="flex-1 break-words">{error}</span>
+          {onDismissError && (
+            <button
+              type="button"
+              onClick={onDismissError}
+              className="shrink-0 p-1 -m-1 rounded hover:bg-black/10 transition-colors"
+              aria-label="Dismiss error"
+              data-testid="error-dismiss"
+            >
+              <X size={16} weight="bold" />
+            </button>
+          )}
         </div>
       )}
 

@@ -33,6 +33,7 @@ import {
   CaretRight,
   MapTrifold,
   Star,
+  X,
   type Icon,
   type IconWeight,
 } from '@phosphor-icons/react'
@@ -92,6 +93,7 @@ export {
   Robot,
   User,
   Star,
+  X,
 }
 
 export const ICON_WEIGHTS: Record<string, IconWeight> = {

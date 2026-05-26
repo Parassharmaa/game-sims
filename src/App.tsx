@@ -253,6 +253,7 @@ export default function App() {
                 stop()
                 goto('bots')
               }}
+              onDismissError={() => setError(null)}
             />
           )}
         </AnimatePresence>
