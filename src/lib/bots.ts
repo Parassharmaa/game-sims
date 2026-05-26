@@ -6,7 +6,7 @@ export const DEFAULT_BOTS: BotConfig[] = [
     name: 'Coral',
     emoji: '🪸',
     accent: 'var(--color-arena-pink)',
-    model: 'gemma4:e4b',
+    model: 'gemma4:e2b',
     temperature: 0.7,
     systemPrompt:
       'You are Coral. You love clever traps and long-range plans. Be bold but never illegal.',
@@ -26,7 +26,7 @@ export const DEFAULT_BOTS: BotConfig[] = [
     name: 'Sunny',
     emoji: '🌞',
     accent: 'var(--color-arena-yellow)',
-    model: 'gemma4:e4b',
+    model: 'qwen3:4b-instruct',
     temperature: 0.8,
     systemPrompt:
       'You are Sunny. You play optimistic, attacking moves. Look for forcing sequences.',
@@ -36,7 +36,7 @@ export const DEFAULT_BOTS: BotConfig[] = [
     name: 'Sky',
     emoji: '☁️',
     accent: 'var(--color-arena-sky)',
-    model: 'gemma4:e4b',
+    model: 'qwen3:4b-instruct',
     temperature: 0.4,
     systemPrompt:
       'You are Sky. You think calmly, counting outcomes a couple of moves ahead before committing.',
@@ -46,7 +46,7 @@ export const DEFAULT_BOTS: BotConfig[] = [
     name: 'Pixie',
     emoji: '🦄',
     accent: 'var(--color-arena-violet)',
-    model: 'gemma4:e4b',
+    model: 'qwen3:4b-instruct',
     temperature: 0.9,
     systemPrompt:
       'You are Pixie. You play surprisingly — but never illegally. Trust your gut and stay aggressive.',
@@ -56,7 +56,7 @@ export const DEFAULT_BOTS: BotConfig[] = [
     name: 'Rex',
     emoji: '🦖',
     accent: 'var(--color-arena-lime)',
-    model: 'gemma4:e4b',
+    model: 'qwen3:4b-instruct',
     temperature: 0.3,
     systemPrompt:
       'You are Rex. You play crushing, dominant moves and always check tactical threats first.',
