@@ -109,6 +109,83 @@ Measured (M-series Mac, same prompt 3×):
 The OS-level prefix cache (always on) already buys 12–50× cache-hit speedup.
 The env vars accelerate the *first* call after a model load.
 
+## Debugging & analysis loop
+
+How I actually iterated on the agents — the process, not just the result.
+
+### 1. Vite proxy logs every Ollama call
+
+The dev-server proxy at `/api/ollama/v1` intercepts traffic and prints a
+one-line summary per call to stdout. With the dev server running inside
+`tmux attach -t llm-arena`, you watch the conversation live:
+
+```
+[ollama] → POST /v1/chat/completions
+[ollama]   model=gemma4:e4b temp=0.7 last-msg: For the make_move tool…
+[ollama] ← 200 POST /v1/chat/completions (1244ms) prefill=312tok 47ms gen=58tok
+```
+
+The crucial number is `prefill=Ntok Nms`. Ollama's response carries
+`prompt_eval_count` and `prompt_eval_duration`; the proxy regex-extracts them.
+When the next turn's prefill ms drops sharply, prefix caching just hit.
+Whole flow lives in `vite.config.ts`'s proxy `configure` block.
+
+### 2. `scripts/analyze-thinking.ts` — capture full reasoning
+
+When the in-app bubble is too small to spot behavioural problems, run a
+controlled turn against each model and dump the entire stream:
+
+```bash
+pnpm dlx tsx scripts/analyze-thinking.ts
+```
+
+Outputs per model: total ms, reasoning chars, free-text chars, the chat
+message (if any), the move picked, and whether it was legal. Wrote it as a
+one-off, kept it because it answered "why are the agents acting weird"
+several times — first run revealed:
+
+- gemma4 emits reasoning as `reasoning-delta` parts (not `text-delta`) →
+  the bubble was silent for 20s
+- qwen3:4b monologued for 360s
+- qwen3:1.7b never invoked `make_move`
+
+Without capturing the raw stream I'd have kept blaming the prompt.
+
+### 3. `scripts/verify-legal.ts` — engine sanity check
+
+When a model picks a move I think is illegal but the engine accepts it (or
+vice versa), I don't argue with the engine — I print its state:
+
+```bash
+pnpm dlx tsx scripts/verify-legal.ts
+```
+
+Reads each engine's `initial()` and `legalMoves()`, compares against
+textbook openings (Reversi opens with C4/D3/E6/F5; post-D3 reply set is
+C3/C5/E3; etc.). When this prints `Match: ✓` for every game I stop
+suspecting the engine and look elsewhere.
+
+### 4. The loop in practice
+
+```
+  observe in tmux logs / chat bubble → suspect something
+       ↓
+  run scripts/analyze-thinking.ts on the suspect setup
+       ↓
+  read full raw stream → identify the actual cause
+  (parts type wrong? prompt section ignored? model
+   tool-call-incapable? reasoning runaway?)
+       ↓
+  smallest fix that addresses the cause
+       ↓
+  rerun the script → compare numbers
+       ↓
+  commit only if numbers actually improved
+```
+
+This loop caught the four biggest bugs in roughly an hour. Cheaper than
+guessing.
+
 ## Learnings (the stuff I'd forget without writing down)
 
 1. **Reasoning models stream as `reasoning-delta`, not `text-delta`.** Gemma 4
