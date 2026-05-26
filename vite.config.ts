@@ -48,9 +48,27 @@ export default defineConfig({
             proxyRes.on('data', (c: Buffer) => chunks.push(c))
             proxyRes.on('end', () => {
               const status = proxyRes.statusCode
-              const sample = Buffer.concat(chunks).toString('utf8').slice(0, 160).replace(/\s+/g, ' ')
+              const body = Buffer.concat(chunks).toString('utf8')
+              // Ollama's OpenAI-compat surfaces prefill cost as prompt_tokens;
+              // native /api/chat exposes prompt_eval_count + duration. Try both.
+              const promptTokens =
+                body.match(/"prompt_tokens"\s*:\s*(\d+)/)?.[1] ??
+                body.match(/"prompt_eval_count"\s*:\s*(\d+)/)?.[1]
+              const completionTokens =
+                body.match(/"completion_tokens"\s*:\s*(\d+)/)?.[1] ??
+                body.match(/"eval_count"\s*:\s*(\d+)/)?.[1]
+              const evalDuration = body.match(/"prompt_eval_duration"\s*:\s*(\d+)/)?.[1]
+              const tag = [
+                promptTokens && `prefill=${promptTokens}tok`,
+                evalDuration && `prefill=${(Number(evalDuration) / 1e6).toFixed(0)}ms`,
+                completionTokens && `gen=${completionTokens}tok`,
+              ]
+                .filter(Boolean)
+                .join(' ')
               // eslint-disable-next-line no-console
-              console.log(`[ollama] ← ${status} ${req.method} ${req.url} (${dt}ms) ${sample}`)
+              console.log(
+                `[ollama] ← ${status} ${req.method} ${req.url} (${dt}ms) ${tag}`,
+              )
             })
           })
           proxy.on('error', (err, req) => {

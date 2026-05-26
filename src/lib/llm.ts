@@ -170,10 +170,14 @@ export async function streamForMove<T>(
   } catch {
     /* not JSON — use as-is */
   }
+  // Static / per-game text goes FIRST so the slot's KV cache reuses the prefix
+  // across consecutive turns from the same agent. Dynamic state goes LAST.
   const userWithChat =
-    `CHAT LOG (${chatHistory.length} message${chatHistory.length === 1 ? '' : 's'} total):\n${chatPreamble(chatHistory, you, myLastMoveTurn, bot.name, opponent.name)}\n\n` +
-    userPrompt +
-    `\n\nFor the make_move tool, the "move" argument should use this notation: ${notation}`
+    `For the make_move tool, the "move" argument must use this exact notation: ${notation}\n` +
+    `\n═══ TURN STATE BELOW ═══\n\n` +
+    `CHAT LOG (${chatHistory.length} message${chatHistory.length === 1 ? '' : 's'} total):\n` +
+    `${chatPreamble(chatHistory, you, myLastMoveTurn, bot.name, opponent.name)}\n\n` +
+    userPrompt
 
   let toolMove: string | null = null
 
