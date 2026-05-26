@@ -220,11 +220,10 @@ export async function streamForMove<T>(
 
   let accumulated = ''
   for await (const part of result.fullStream) {
-    if (part.type === 'text-delta') {
-      const delta =
-        (part as unknown as { text?: string; textDelta?: string }).text ??
-        (part as unknown as { textDelta?: string }).textDelta ??
-        ''
+    // Models like Gemma 4 emit a <think> block as `reasoning-delta` parts
+    // BEFORE any `text-delta`. Stream both into the same thinking bubble.
+    if (part.type === 'text-delta' || part.type === 'reasoning-delta') {
+      const delta = (part as unknown as { text?: string }).text ?? ''
       if (delta) {
         accumulated += delta
         args.onToken?.(delta, accumulated)
