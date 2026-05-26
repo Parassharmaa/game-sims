@@ -34,6 +34,8 @@ import {
   MapTrifold,
   Star,
   X,
+  Eye,
+  EyeSlash,
   type Icon,
   type IconWeight,
 } from '@phosphor-icons/react'
@@ -94,6 +96,8 @@ export {
   User,
   Star,
   X,
+  Eye,
+  EyeSlash,
 }
 
 export const ICON_WEIGHTS: Record<string, IconWeight> = {

@@ -16,7 +16,21 @@ import type {
   PlayerSlot,
 } from '@/games/types'
 import type { BotConfig } from '@/lib/llm'
-import { Trophy, Handshake, Target, Play, Stop, Reset, ArrowLeft, GameController, X, Warning } from '@/components/icons'
+import { useState } from 'react'
+import {
+  Trophy,
+  Handshake,
+  Target,
+  Play,
+  Stop,
+  Reset,
+  ArrowLeft,
+  GameController,
+  X,
+  Warning,
+  Eye,
+  EyeSlash,
+} from '@/components/icons'
 
 interface Props {
   engine: GameEngine<unknown, unknown>
@@ -156,6 +170,7 @@ export function ArenaPage(props: Props) {
   } = props
 
   const humanBot = humanTurn ? (humanTurn.player === 'A' ? botA : botB) : null
+  const [showThinking, setShowThinking] = useState(false)
 
   return (
     <motion.section
@@ -207,6 +222,21 @@ export function ArenaPage(props: Props) {
         )}
         <button className="nb-btn inline-flex items-center gap-2" onClick={onReset} disabled={running}>
           <Reset size={16} weight="bold" /> Reset board
+        </button>
+        <button
+          type="button"
+          className="nb-btn inline-flex items-center gap-2"
+          onClick={() => setShowThinking((v) => !v)}
+          data-testid="toggle-thinking"
+          data-active={showThinking || undefined}
+          style={showThinking ? { background: 'var(--color-arena-yellow)' } : undefined}
+        >
+          {showThinking ? (
+            <EyeSlash size={16} weight="bold" />
+          ) : (
+            <Eye size={16} weight="bold" />
+          )}
+          {showThinking ? 'Hide thinking' : 'Show thinking'}
         </button>
       </div>
 
@@ -268,12 +298,14 @@ export function ArenaPage(props: Props) {
               </div>
             </div>
           ) : (
-            <ThinkingBubble
-              bot={thinking === 'A' ? botA : botB}
-              text={thoughtStream}
-              visible={thinking != null}
-              side={thinking === 'B' ? 'right' : 'left'}
-            />
+            showThinking && (
+              <ThinkingBubble
+                bot={thinking === 'A' ? botA : botB}
+                text={thoughtStream}
+                visible={thinking != null}
+                side={thinking === 'B' ? 'right' : 'left'}
+              />
+            )
           )}
 
           <div className="flex justify-center">
