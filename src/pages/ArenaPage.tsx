@@ -25,6 +25,8 @@ interface Props {
   status: GameStatus | null
   log: MoveLogEntry[]
   chat: ChatMessage[]
+  /** Sends a chat message as the human player; visible any time a human is in the game. */
+  sendHumanChat?: (text: string) => void
   thinking: PlayerSlot | null
   humanTurn: {
     player: PlayerSlot
@@ -137,6 +139,7 @@ export function ArenaPage(props: Props) {
     status,
     log,
     chat,
+    sendHumanChat,
     thinking,
     humanTurn,
     thoughtStream,
@@ -292,7 +295,7 @@ export function ArenaPage(props: Props) {
           describeMove={(m) =>
             (engine as unknown as { describeMove: (m: unknown) => string }).describeMove(m)
           }
-          onSendChat={humanTurn?.sendChat}
+          onSendChat={sendHumanChat ?? humanTurn?.sendChat}
           chatSenderHint={humanBot ? `as ${humanBot.name}` : undefined}
         />
       </div>

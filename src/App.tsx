@@ -9,7 +9,7 @@ import type {
   MoveLogEntry,
   PlayerSlot,
 } from '@/games/types'
-import { createOllamaClient, listLocalModels, type BotConfig } from '@/lib/llm'
+import { createOllamaClient, isHuman, listLocalModels, type BotConfig } from '@/lib/llm'
 import { DEFAULT_BOTS } from '@/lib/bots'
 import { runGame } from '@/lib/runner'
 import { StepProgress, type Step } from '@/components/StepProgress'
@@ -64,6 +64,12 @@ export default function App() {
   const [thoughtStream, setThoughtStream] = useState('')
   const [log, setLog] = useState<MoveLogEntry[]>([])
   const [chat, setChat] = useState<ChatMessage[]>([])
+  // Mirror chat into a ref so the runner can always read the latest snapshot
+  // when threading history into the next prompt.
+  const chatRef = useRef<ChatMessage[]>([])
+  useEffect(() => {
+    chatRef.current = chat
+  }, [chat])
   const [running, setRunning] = useState(false)
   const [humanTurn, setHumanTurn] = useState<{
     player: PlayerSlot
@@ -116,6 +122,7 @@ export default function App() {
         engine,
         botA,
         botB,
+        getChat: () => chatRef.current,
         signal: ctrl.signal,
         onHumanTurn: (ctx) =>
           new Promise((resolve, reject) => {
@@ -174,6 +181,35 @@ export default function App() {
       abortRef.current = null
     }
   }, [client, engine, botA, botB, setState])
+
+  // Lets the human send a chat at any time during a running match, not just
+  // on their turn. Attributes to whichever slot is the current turn's player
+  // if that player is human; otherwise to the first human slot.
+  const sendHumanChat = useCallback(
+    (text: string) => {
+      const trimmed = text.trim()
+      if (!trimmed) return
+      const currentTurn = status?.kind === 'in_progress' ? status.turn : null
+      const slot: PlayerSlot | null =
+        currentTurn && isHuman(currentTurn === 'A' ? botA : botB)
+          ? currentTurn
+          : isHuman(botA)
+            ? 'A'
+            : isHuman(botB)
+              ? 'B'
+              : null
+      if (!slot) return
+      const turnNum = log.length + 1
+      const message: ChatMessage = {
+        turn: turnNum,
+        player: slot,
+        text: trimmed.slice(0, 280),
+        at: new Date().toISOString(),
+      }
+      setChat((prev) => [...prev, message])
+    },
+    [status, botA, botB, log.length],
+  )
 
   const stop = useCallback(() => {
     abortRef.current?.abort()
@@ -238,6 +274,9 @@ export default function App() {
               status={status}
               log={log}
               chat={chat}
+              sendHumanChat={
+                isHuman(botA) || isHuman(botB) ? sendHumanChat : undefined
+              }
               thinking={thinking}
               humanTurn={humanTurn}
               thoughtStream={thoughtStream}

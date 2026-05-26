@@ -26,6 +26,11 @@ export interface RunnerOptions<State, Move> {
   maxTurns?: number
   /** Maximum LLM attempts per move before the player forfeits. */
   maxAttemptsPerMove?: number
+  /**
+   * Returns the latest chat log so the runner picks up messages the human
+   * sent between AI turns. Defaults to an empty log if omitted.
+   */
+  getChat?: () => ChatMessage[]
   /** Called whenever a human player needs to make a move. */
   onHumanTurn?: (ctx: HumanTurnContext<State, Move>) => Promise<HumanTurnResponse<Move>>
   /** Called whenever something changes. */
@@ -92,12 +97,12 @@ const USER_PROMPT = <S>(
 }
 
 export async function runGame<State, Move>(opts: RunnerOptions<State, Move>) {
-  const { client, engine, botA, botB, onEvent, onHumanTurn, signal } = opts
+  const { client, engine, botA, botB, onEvent, onHumanTurn, getChat, signal } = opts
   const maxTurns = opts.maxTurns ?? 200
   const maxAttempts = opts.maxAttemptsPerMove ?? 5
   let state = engine.initial()
   const history: { turn: number; player: PlayerSlot; outcome: string }[] = []
-  const chat: ChatMessage[] = []
+  const readChat = (): ChatMessage[] => getChat?.() ?? []
   const myLastMoveTurn: Record<PlayerSlot, number> = { A: 0, B: 0 }
   onEvent({ type: 'start', state })
 
@@ -150,7 +155,7 @@ export async function runGame<State, Move>(opts: RunnerOptions<State, Move>) {
           opponent,
           state,
           legalMoves: legal,
-          chat,
+          chat: readChat(),
           engine,
           signal,
           sendChat: (text) => {
@@ -162,7 +167,6 @@ export async function runGame<State, Move>(opts: RunnerOptions<State, Move>) {
               text: trimmed.slice(0, 280),
               at: new Date().toISOString(),
             }
-            chat.push(message)
             onEvent({ type: 'chat', message })
           },
         })
@@ -183,7 +187,7 @@ export async function runGame<State, Move>(opts: RunnerOptions<State, Move>) {
           bot,
           opponent,
           you: player,
-          chatHistory: chat,
+          chatHistory: readChat(),
           myLastMoveTurn: myLastMoveTurn[player],
           systemPrompt: SYSTEM_PREAMBLE(
             engine as GameEngine<unknown, unknown>,
@@ -213,7 +217,6 @@ export async function runGame<State, Move>(opts: RunnerOptions<State, Move>) {
               text,
               at: new Date().toISOString(),
             }
-            chat.push(message)
             onEvent({ type: 'chat', message })
           },
         })
