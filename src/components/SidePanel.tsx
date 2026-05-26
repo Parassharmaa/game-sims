@@ -82,7 +82,7 @@ export function SidePanel({
 
   return (
     <div
-      className="nb-card flex flex-col lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] min-h-[480px] w-full lg:w-[360px] max-w-full"
+      className="nb-card flex flex-col lg:sticky lg:top-4 h-[calc(100vh-2rem)] min-h-[480px] w-full lg:w-[360px] max-w-full overflow-hidden"
       data-testid="side-panel"
     >
       <div className="flex border-b-[3px] border-black">
