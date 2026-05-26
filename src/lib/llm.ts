@@ -174,11 +174,16 @@ export async function streamForMove<T>(
   } catch {
     /* not JSON — use as-is */
   }
+  // Qwen3 understands `/no_think` as a directive to skip its <think> block.
+  // Without it, qwen3:4b can monologue for 5+ minutes per turn.
+  const isQwen3 = bot.model.startsWith('qwen3:')
+  const noThink = isQwen3 ? ' /no_think' : ''
+
   // Static / per-game text goes FIRST so the slot's KV cache reuses the prefix
   // across consecutive turns from the same agent. Chat log goes LAST so the
   // model's attention lands on it just before deciding the move.
   const userWithChat =
-    `For the make_move tool, the "move" argument must use this exact notation: ${notation}\n` +
+    `For the make_move tool, the "move" argument must use this exact notation: ${notation}${noThink}\n` +
     `\n═══ TURN STATE BELOW ═══\n\n` +
     userPrompt +
     `\n\nRECENT CHAT (last 5, ${chatHistory.length} total):\n` +
@@ -190,8 +195,9 @@ export async function streamForMove<T>(
     model: client.model(bot.model),
     temperature: bot.temperature ?? 0.7,
     // Hard cap to prevent reasoning models from monologuing for 5+ minutes.
-    // Gives ~1500 tokens of reasoning + room for the tool call.
-    maxOutputTokens: 1800,
+    // Qwen3 gets a tighter cap because /no_think already short-circuits its
+    // reasoning; gemma needs more headroom for its internal <think>.
+    maxOutputTokens: isQwen3 ? 800 : 1800,
     system,
     prompt: userWithChat,
     abortSignal: args.signal,
